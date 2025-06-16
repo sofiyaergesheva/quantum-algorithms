@@ -1,9 +1,13 @@
 import numpy as np
+from matplotlib import pyplot as plt
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit, transpile
+from qiskit.visualization import plot_histogram
 from qiskit_aer import AerSimulator
 
 
-def prepare_qubit_state(qc, qubit, theta, phi):
+def prepare_qubit_state(qc, qubit, t, p):
+    theta = 2 * np.pi * t
+    phi = 2 * np.pi * p
     qc.u(theta, phi, 0, qubit)
 
 
@@ -32,6 +36,12 @@ def swap_test(qc, ctrl, reg_a, reg_b, creg):
     compiled = transpile(qc, simulator)
     result = simulator.run(compiled, shots=1000).result()
     counts = result.get_counts()
+    plot_histogram(counts)
+    plt.xlabel('Состояние')
+    plt.ylabel('Частота измерения')
+    plt.show()
+    qc.draw(output="mpl")
+    plt.show()
     p1 = counts.get('1', 0) / 1000
     p0 = max(0.5, 1 - p1)
     s = max(0.0, 1 - 2 * p1)
@@ -42,7 +52,7 @@ if __name__ == "__main__":
     theta_a = [np.pi / 2, 0]
     phi_a = [0, 0]
     theta_b = [np.pi / 2, 0]
-    phi_b = [0, 0]
+    phi_b = [np.pi / 2, 0]
     qc, ctrl, reg_a, reg_b, creg = prepare_registers(theta_a, phi_a, theta_b, phi_b)
     p0, s = swap_test(qc, ctrl, reg_a, reg_b, creg)
     print(f"|⟨a|b⟩|² = {s:.4f}")

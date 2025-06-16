@@ -1,4 +1,6 @@
+from matplotlib import pyplot as plt
 from qiskit import QuantumCircuit, transpile
+from qiskit.visualization import plot_histogram
 from qiskit_aer import AerSimulator
 from qiskit.circuit.library import QFT
 from numpy import pi
@@ -19,12 +21,33 @@ def run_qpe(phi: Fraction, n):
     compiled = transpile(qc, simulator)
     result = simulator.run(compiled, shots=1000).result()
     counts = result.get_counts()
+    plot_histogram(counts)
+    plt.xlabel('Состояние')
+    plt.ylabel('Частота измерения')
+    plt.show()
+    qc.draw(output="mpl")
+    plt.show()
     most_probable = max(counts, key=counts.get)
     estimated_phi = int(most_probable, 2) / 2 ** n
     return estimated_phi
 
 
 if __name__ == "__main__":
-    phi = Fraction(7, 9)
-    print(f"Ожидаемая фаза: {float(phi):.6f}")
-    print(f"Оценённая фаза: {run_qpe(phi, 8):.6f}")
+    true_phi = Fraction(3, 7)
+    phi_float = float(true_phi)
+    results = []
+    for n in range(1, 8):
+        estimated = run_qpe(true_phi, n)
+        error = abs(phi_float - estimated)
+        results.append((n, estimated, error))
+    ns = [r[0] for r in results]
+    estimates = [r[1] for r in results]
+    errors = [r[2] for r in results]
+    plt.figure(figsize=(10, 5))
+    plt.plot(ns, errors, marker='o')
+    plt.xlabel('Количество кубитов (n)')
+    plt.ylabel('Погрешность')
+    plt.grid(True)
+    plt.show()
+    print(f"Ожидаемая фаза: {float(true_phi):.6f}")
+    print(f"Оценённая фаза: {run_qpe(true_phi, 8):.6f}")

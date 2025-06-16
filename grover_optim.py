@@ -1,6 +1,8 @@
 import random
 import numpy as np
+from matplotlib import pyplot as plt
 from qiskit import QuantumCircuit, transpile
+from qiskit.visualization import plot_histogram
 from qiskit_aer import AerSimulator
 import math
 
@@ -42,13 +44,20 @@ def durr_hoyer(values, f):
     x0 = random.choice(values)
     y0 = f(x0)
     print(f"Начальный x0: {x0}, f(x0) = {y0}")
+    final_qc = None
     while iterations <= max_iterations:
         qc = QuantumCircuit(num_qubits)
         qc.h(range(num_qubits))
+        qc.barrier()
         for _ in range(int((math.pi/4)*math.sqrt(num_values))):
             grover_oracle(qc, y0, values, f)
+            qc.barrier()
             diffusion_operator(qc, values)
+            qc.barrier()
+        qc.barrier()
         qc.measure_all()
+        if iterations == max_iterations:
+            final_qc = qc
         simulator = AerSimulator()
         compiled = transpile(qc, simulator)
         result = simulator.run(compiled, shots=1000).result()
@@ -61,9 +70,19 @@ def durr_hoyer(values, f):
         x = values[index]
         y = f(x)
         if y < y0:
-            print(f"Обновление: f({x}) = {y} < {y0}")
             x0, y0 = x, y
         iterations += 1
+    if final_qc:
+        simulator = AerSimulator()
+        compiled = transpile(final_qc, simulator)
+        result = simulator.run(compiled, shots=1000).result()
+        counts = result.get_counts()
+        plot_histogram(counts)
+        plt.xlabel('Состояние')
+        plt.ylabel('Частота измерения')
+        plt.show()
+        final_qc.draw(output="mpl")
+        plt.show()
     print(f"Результат: x = {x0}, f(x) = {y0}\n")
     return x0
 
@@ -82,4 +101,4 @@ if __name__ == "__main__":
     f = lambda x: x ** 2
     min_val = 10 ** 9
     minimum = find_min(values, f, min_val)
-    print(f"\nМинимум равен: {minimum}")
+    print(f"Минимум равен: {minimum}")
